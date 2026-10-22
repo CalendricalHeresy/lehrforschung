@@ -1,85 +1,93 @@
-from unittest import case
-
 import pandas as pd
+import parsers.parser_v2_helpers as hp
 import country_converter as coco
 
-def map_columns(mapping, discard_leftovers=False):
-    # First deal with duplicate names
 
 
+def import_worldbank(filename, value_name):
+    df = hp.import_file(
+        filename,
+        file_format="csv",
+        header_row=2
+    )
+    df = hp.clean_up(df, columns=[-1])  # Last column is None throughout so delete it
+    df = hp.easy_melter(df, 4, "year")  # Unpivot
+    df = hp.map_columns(df, {"Country Code": "country", "year": "year", "value": value_name}, discard_leftovers=True)
+    df = hp.year_convert(df, "year")
+    df = hp.country_convert(df, "country", drop_invalid=True)
+    print(df[df["year"] == 2010])
+    return df
 
-    pass
+def import_worldbank_oil_rents():
+    df = import_worldbank("data/worldbank/oil-rents-share-of-gdp/API_NY.GDP.PETR.RT.ZS_DS2_en_csv_v2_2051.csv",
+                     "OilRentsGDP")
+    return df
 
-def clean_up(data, column_names=None, columns=None, axis=1):
+def import_worldbank_mineral_rents():
+    df = import_worldbank("data/worldbank/mineral-rents-share-of-gdp/API_NY.GDP.MINR.RT.ZS_DS2_en_csv_v2_10202.csv",
+                          "MineralRentsGDP")
+    return df
+
+def import_worldbank_income_capita():
+    df = import_worldbank("data/worldbank/adjusted-net-national-income-per-capita/API_NY.ADJ.NNTY.PC.CD_DS2_en_csv_v2_38701.csv",
+                          "IncomeCapita")
+    return df
+
+def import_owid_oil_prod():
+    df = hp.import_file(
+        "data/owid/oil-prod-per-capita/oil-prod-per-capita.csv",
+        file_format="csv",
+    )
+    df = hp.map_columns(df, {"Year": "year", "Code": "country", "Oil": "OilProdCapita"}, discard_leftovers=True)
+    df = hp.year_convert(df, "year")
+    df = hp.country_convert(df, "country", drop_invalid=True)
+    return df
+
+def import_polity5(data="polity"):
     """
-    cleans up columns either by name or by index
-    :param data: Dataframe to be cleaned
-    :param column_names: The names of the columns to be removed
-    :param columns: The indexes of the columns to be removed
-    :param axis: 0 means removing by row labels and 1 means removing columns
+
+    :param data: Either "polity" or "polity2" or "democ" or "autoc" are useful
     :return:
     """
-    if column_names:
-        return data.drop(column_names, axis=axis)
-    if columns:
-        return data.drop(data.columns(columns), axis=axis)
-    return data
+    # Hackett, Conrad, Marcin Stonawski, Yunping Tong, Stephanie Kramer and Anne Fengyan Shi. 2025. “Dataset of Global Religious Composition Estimates for 2010 and 2020.” Pew Research Center. doi: 10.58094/vhrw-k516.
+    df = hp.import_file(
+        "data/polity5/p5v2018.xls",
+        file_format="xls",
+    )
+    df = hp.map_columns(df, {"year":"year", "scode":"country", data:data}, discard_leftovers=True)
+    pd.to_numeric(df[data], errors="coerce")
 
-def easy_melter(data, id_until, var_name, value_name="value"):
-    """
-    Melts (unpivots) data in the selected range
-    :param data: Dataframe that needs to be melted
-    :param id_until: The last column BEFORE the data
-    :param var_name: the name of the column that has all the values from the column names (x-axis): 1970 | 1971 | 1972
-    :param value_name: the name of the column that has the values of the rows (y-axis)
-    :param cut_column:
-    :return:
-    """
+    df = hp.year_convert(df, "year")
+    df = hp.country_convert(df, "country", drop_invalid=True)
+    return df
 
-    data = data.melt(
-        id_vars=data.columns[:id_until],
-        value_vars=data.columns[id_until:],
-        var_name=var_name,
-        value_name=value_name)
-    return data
+def filter_polity(df):
+    # some values are -66 -77 -88 etc for unclear data
+    df = df[df["polity"]>=-10]
+    df["polity"] = (df["polity"] + 10)/2
+    return df
 
-def import_file(file, file_format="csv", header_row=0):
-    match file_format:
-        case "csv":
-            return pd.read_csv(file, header=header_row)
-        case "excel" | "xlsx" | "xls":
-            return pd.read_excel(file, header=header_row)
-        case _:
-            raise Exception(f"Invalid file format: {file_format}")
+def import_muslim_perc(year=2010):
+    df = hp.import_file(
+        "data/pew_research/Religious-Composition-2010-2020-dataset/Religious Composition 2010-2020 dataset/Religious Composition 2010-2020 (percentages).csv",
+        file_format="csv",
+    )
+    df = hp.year_convert(df, "Year")
+    df = df[df["Year"]==year]
+    df = hp.map_columns(df, {"Year":"year", "Countrycode":"country", "Muslims":"muslim_perc"}, discard_leftovers=True)
+    df = hp.country_convert(df, "country", drop_invalid=True)
 
+    return df
 
-def country_convert(data, column_name, drop_invalid=False):
-    """
-    Converts any country codes / names to ISO3
-    :param data:
-    :param column_name:
-    :param drop_invalid:
-    :return:
-    """
+def import_OECD(year=2010):
     cc = coco.CountryConverter()
-    data[column_name] = cc.pandas_convert(data[column_name], to="ISO3")
-    if drop_invalid:
-        data = data[
-            # Conditions for keeping the row
-            data["country"] != "not found"
-        ]
-    return data
+    df = cc.OECDas("ISO3")[cc.OECD["OECD"]<=2010]
+    df = df.rename(columns={"ISO3":"country"})
+    df["year"] = year
+    return df
 
 
-def year_convert(data, column_name):
-    """
-    Converts the year column to an integer
-    :param data:
-    :param column_name:
-    :return:
-    """
-    data[column_name] = pd.to_numeric(data[column_name], errors="coerce")
-    return data
+# REMEMBER THAT COUNTRYCONVERTER HAS DATA AS WELL (SUCH AS OECD MEMBERS)
 
 
 

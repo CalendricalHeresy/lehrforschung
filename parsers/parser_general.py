@@ -6,7 +6,7 @@ from data_constructor import Constructor
 cc = coco.CountryConverter()
 
 
-def melter(data, id_until, var_name, value_name="value", cut_column=None):
+def melter(data: pd.DataFrame, id_until, var_name, value_name="value", cut_column=None):
     if cut_column:
         data = data.drop(data.columns[cut_column], axis=1)
     data = data.melt(
