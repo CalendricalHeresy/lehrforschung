@@ -19,7 +19,7 @@ def melter(data, id_until, var_name, value_name="value", cut_column=None):
 
 
 class Importer:
-    def __init__(self, filename, mapping_includes_metric=False, mapping=None, metric=None, header_row=None):
+    def __init__(self, filename, mapping_includes_metric=False, mapping=None, metric=None, header_row=None, format="csv"):
 
         if mapping is None:
             mapping = {"Year": "year", "Code": "country", "Oil": "value"}
@@ -27,9 +27,16 @@ class Importer:
             pass
         if not mapping_includes_metric:
             self.metric = metric
-        if header_row is None:
-            self.file = pd.read_csv(filename)
-        else: self.file = pd.read_csv(filename, header=header_row)
+        if format == "csv":
+            if header_row is None:
+                self.file = pd.read_csv(filename)
+            else: self.file = pd.read_csv(filename, header=header_row)
+        if format == "excel" or format == "xlsx" or format == "xls":
+            if header_row is None:
+                self.file = pd.read_excel(filename)
+            else: self.file = pd.read_excel(filename, header=header_row)
+        else: print("Format not supported")
+
         self.keys = mapping
 
     def melt(self, id_until, var_name, value_name="value", cut_column=None):
@@ -38,12 +45,18 @@ class Importer:
         # TODO PROPERLY SEPERATE OUT self.file and the data that actually gets modified
         # TODO RETHINK CLASS INITIALISATION AND FUNCTIONS
 
-    def import_to(self, all_data: Constructor):
-        data = self.file.rename(columns=self.keys)
-        data = data[list(self.keys.values())]
-        data["metric"] = self.metric
+    def get_data(self):
+        # Remove every column but the ones we want THATS SO DUMB
+        data = self.file[list(self.keys.values())]
+        # Remap
+        data = data.rename(columns=self.keys)
+        # data = data[list(self.keys.values())]
+
+        # data["metric"] = self.metric # DUMB
+        data = data.rename(columns={"value": self.metric})
         data["country"] = cc.pandas_convert(data["country"], to="ISO3")
         data = data[data["country"] != "not found"]
-        all_data.df = pd.concat([all_data.df, data], ignore_index=True)
 
-        return all_data
+        data["year"] = pd.to_numeric(data["year"], errors="coerce") # TODO FIND A BETTER SOLUTION THAN THIS
+
+        return data

@@ -3,7 +3,6 @@ import pandas as pd
 from parsers.parser_general import Importer
 
 metric_data = {}
-all_data = MultConstructor()
 
 
 def importer(metric, year, country, value=None):
@@ -32,25 +31,32 @@ if __name__ == '__main__':
 
     Imp = Importer("data/owid/oil-prod-per-capita/oil-prod-per-capita.csv", mapping={"Year": "year", "Code": "country", "Oil": "value"}, metric="OilProdPerCapita")
 #
-    all_data = Imp.import_to(all_data)
-    print(all_data.df)
+    all_data = Imp.get_data()
+    print(all_data)
 
     Imp2 = Importer("data/worldbank/oil-rents-share-of-gdp/API_NY.GDP.PETR.RT.ZS_DS2_en_csv_v2_2051.csv", mapping={"Year": "year", "Country Code": "country", "Oil": "value"}, metric="OilRentsShare", header_row=2)
+
     Imp2.melt(4, "year", cut_column=-1)
-    all_data = Imp2.import_to(all_data)
+    all_data = all_data.merge(Imp2.get_data())
+
+    Imp3 = Importer("data/polity5/p5v2018.xls", mapping={"year":"year", "scode":"country","polity2":"value"}, metric="polity2", format="xls")
+    all_data = all_data.merge(Imp3.get_data())
 
     # WHY ARE YEARS STRINGS AHHHHH
     #TODO ADD VALUE TYPES TO MAPPING!!!!
-    all_data.df["year"] = pd.to_numeric(all_data.df["year"], errors="coerce")
-    print(all_data.df)
+    all_data["year"] = pd.to_numeric(all_data["year"], errors="coerce")
+
+
+
+    print(all_data)
     # print(all_data.filter({"year": 2018, "country":"DEU"}))
-    print(all_data.df[
-              (all_data.df["country"] == "DEU") &
-              # (all_data.df["metric"] == "OilRentsShare") &
-              (all_data.df["year"] == 2016)
+    print(all_data[
+              (all_data["country"] == "DEU") &
+              # (all_data["metric"] == "OilRentsShare") &
+              (all_data["year"] == 2010)
           ])
 
-    all_data.df.to_csv("test1.csv")
+    all_data.to_csv("test1.csv")
 
 
 
