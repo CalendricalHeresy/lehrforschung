@@ -110,9 +110,22 @@ def import_wb_p_data():
     df["year"] = df["year"].str[:4]
     df = hp.year_convert(df, "year")
     df.to_csv("AHHHH.csv")
+    return df
 
 
     return df
+
+def import_madison():
+    df = hp.import_file(
+        "data/madison/mpd2023_web.xlsx",
+        file_format="xlsx",
+        sheet_name="Full data",
+    )
+    df = df[["countrycode", "year", "gdppc"]]
+    df = hp.year_convert(df, "year")
+    df = hp.country_convert(df, "countrycode", drop_invalid=True)
+    return df
+
 
 # REMEMBER THAT COUNTRYCONVERTER HAS DATA AS WELL (SUCH AS OECD MEMBERS)
 

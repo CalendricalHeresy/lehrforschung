@@ -35,8 +35,7 @@ def ross2001():
 
 
 # Try to replicate table 3.8 from Ross 2012
-def ross2012(col=1):
-    df = parser.import_ross_2012()
+def ross2012(df, col=1):
 
     # Column 1:
     ## Lagged Polity score, Log Income, Period Dummies
@@ -51,8 +50,7 @@ def ross2012(col=1):
     # Col 6:
     ## + Prior Democracy, Economic Growth, Muslim Population
 
-    # Only keep data we want
-    df1 = df[["year", "id", "polity", "logGDP_cap2000_sup", "logoil_gas_valuePOP", "latin", "dem_prior_update", "gdpgrowth_alt_new_1", "mus_pct_sup"]].copy()
+
     # Create lagged variables
     df1["polity_l5"] = df1.groupby("id")["polity"].shift(5)
     # All the other variables are also lagged by 5 years!
@@ -138,31 +136,67 @@ def ross2012_better():
     ross12 = parser.import_ross_2012()
     # TODO
 
-res1 = ross2012(1)
-res2 = ross2012(2)
-res3 = ross2012(3)
-res4 = ross2012(4)
-res5 = ross2012(5)
-res6 = ross2012(6)
 
-models = [res1, res2, res3, res4, res5, res6]
-sg = Stargazer(models)
+def create_regressions(df1):
+    res1 = ross2012(df1, 1)
+    res2 = ross2012(df1, 2)
+    res3 = ross2012(df1, 3)
+    res4 = ross2012(df1, 4)
+    res5 = ross2012(df1, 5)
+    res6 = ross2012(df1, 6)
 
-sg.covariate_order([
-    "polity_l5", "logGDP_cap2000_sup_l5", "logoil_gas_valuePOP_l5",
-    "logoil_latin_l5", "dem_prior_update", "gdpgrowth_alt_new_l5", "mus_pct_sup",
-])                                                    # shows only these, in this order
-sg.rename_covariates({
-    "polity_l5": "Polity (lagged)",
-    "logGDP_cap2000_sup_l5": "Income (log)",
-    "logoil_gas_valuePOP_l5": "Oil income (log)",
-    "logoil_latin_l5": "Oil x Latin America",
-    "dem_prior_update": "Prior democracy",
-    "gdpgrowth_alt_new_l5": "Economic growth",
-    "mus_pct_sup": "Muslim population",
-})
+    models = [res1, res2, res3, res4, res5, res6]
+    sg = Stargazer(models)
 
-sg.add_line("Period dummies", ["Yes"] * 6)
+    sg.covariate_order([
+        "polity_l5", "logGDP_cap2000_sup_l5", "logoil_gas_valuePOP_l5",
+        "logoil_latin_l5", "dem_prior_update", "gdpgrowth_alt_new_l5", "mus_pct_sup",
+    ])  # shows only these, in this order
+    sg.rename_covariates({
+        "polity_l5": "Polity (lagged)",
+        "logGDP_cap2000_sup_l5": "Income (log)",
+        "logoil_gas_valuePOP_l5": "Oil income (log)",
+        "logoil_latin_l5": "Oil x Latin America",
+        "dem_prior_update": "Prior democracy",
+        "gdpgrowth_alt_new_l5": "Economic growth",
+        "mus_pct_sup": "Muslim population",
+    })
 
-with open("output.html", "w") as f:
-    f.write(sg.render_html())
+    sg.add_line("Period dummies", ["Yes"] * 6)
+
+    with open("output.html", "w") as f:
+        f.write(sg.render_html())
+
+
+
+df = parser.import_ross_2012()
+
+# Only keep data we want
+df1 = df[["year", "id", "polity", "logGDP_cap2000_sup", "logoil_gas_valuePOP", "latin", "dem_prior_update", "gdpgrowth_alt_new_1", "mus_pct_sup"]].copy()
+
+
+
+# Fill the missing GDP values through the Madison project data
+madison = parser.import_madison()
+madison = madison.rename(columns={"country": "id"})
+# madison["id"] = madison["id"].astype(str)
+madison = madison[(madison["year"] >= 1960) & (madison["year"] <= 2005)]
+madison["logGDP"] = np.log(madison["gdppc"])
+madison["year"] = madison["year"].astype(int)
+gdpdata = df1[["year", "id", "logGDP_cap2000_sup"]].copy()
+# gdpdata["id"] = gdpdata["id"].astype(str)
+gdpdata["year"] = gdpdata["year"].dt.year.astype(int)
+gdpdata = gdpdata.rename(columns={"logGDP_cap2000_sup": "logGDP"})
+
+print(gdpdata.dtypes)
+print(madison.dtypes)
+
+gdpdata = gdpdata.merge(
+    madison[["year", "id", "logGDP"]],
+    on=["year", "id"],
+    how="left",
+)
+
+print(gdpdata)
+
+# create_regressions(df1)
