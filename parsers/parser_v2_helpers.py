@@ -59,6 +59,8 @@ def import_file(file, file_format="csv", header_row=0):
             return pd.read_csv(file, header=header_row)
         case "excel" | "xlsx" | "xls":
             return pd.read_excel(file, header=header_row)
+        case "stata" | "dta":
+            return pd.read_stata(file)
         case _:
             raise Exception(f"Invalid file format: {file_format}")
 

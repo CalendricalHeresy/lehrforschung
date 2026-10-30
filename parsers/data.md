@@ -69,4 +69,24 @@ dependency variable (regime) lagged by 5 years
 
 obv the year
 
+## Everything else
 
+### Colonial Transformations Dataset
+https://www.worlddevelopment.uzh.ch/en/research/indcol.html
+
+
+
+## Ross 2009
+
+### Oil Income per Capita, Oil Income (log) and Oil Income = 1 when Oil income per cap over 100
+Ross database
+
+### Income (log)
+variable Income, which measures the natural log of income per capita based on data from the World Development Indicators, with missing observations filled in with adjusted figures from Heston, Summers, and Aten [2004]
+
+### Islam
+I add the variable Islam, which represents the Muslim fraction of the population and is taken from Barrett [1982].
+
+### Polity Lagged
+
+### 

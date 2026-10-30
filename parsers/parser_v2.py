@@ -4,33 +4,38 @@ import country_converter as coco
 
 
 
-def import_worldbank(filename, value_name):
+
+def import_worldbank(filename, value_name, header_row=2, remove_last_col=False):
     df = hp.import_file(
         filename,
         file_format="csv",
-        header_row=2
+        header_row=header_row
     )
-    df = hp.clean_up(df, columns=[-1])  # Last column is None throughout so delete it
+    if remove_last_col:
+        df = hp.clean_up(df, columns=[-1])  # Last column is None throughout so delete it
     df = hp.easy_melter(df, 4, "year")  # Unpivot
     df = hp.map_columns(df, {"Country Code": "country", "year": "year", "value": value_name}, discard_leftovers=True)
     df = hp.year_convert(df, "year")
     df = hp.country_convert(df, "country", drop_invalid=True)
-    print(df[df["year"] == 2010])
+    # print(df[df["year"] == 2010])
     return df
 
 def import_worldbank_oil_rents():
     df = import_worldbank("data/worldbank/oil-rents-share-of-gdp/API_NY.GDP.PETR.RT.ZS_DS2_en_csv_v2_2051.csv",
-                     "OilRentsGDP")
+                     "OilRentsGDP",
+                          remove_last_col=True)
     return df
 
 def import_worldbank_mineral_rents():
     df = import_worldbank("data/worldbank/mineral-rents-share-of-gdp/API_NY.GDP.MINR.RT.ZS_DS2_en_csv_v2_10202.csv",
-                          "MineralRentsGDP")
+                          "MineralRentsGDP",
+                          remove_last_col=True)
     return df
 
 def import_worldbank_income_capita():
     df = import_worldbank("data/worldbank/adjusted-net-national-income-per-capita/API_NY.ADJ.NNTY.PC.CD_DS2_en_csv_v2_38701.csv",
-                          "IncomeCapita")
+                          "IncomeCapita",
+                          remove_last_col=True)
     return df
 
 def import_owid_oil_prod():
@@ -86,6 +91,23 @@ def import_OECD(year=2010):
     df["year"] = year
     return df
 
+def import_ross_2012():
+    df = hp.import_file(
+        "data/ross_data/replicationdataross2012/Replication data for The Oil Curse - Ross 2012.dta",
+        file_format="dta"
+    )
+    return df
+
+def import_ross_2015():
+    pass
+
+def import_wb_p_data():
+    df = hp.import_file(
+        "data/worldbank/P_Data_Extract_From_World_Development_Indicators/data.csv",
+        file_format="csv"
+    )
+
+    return df
 
 # REMEMBER THAT COUNTRYCONVERTER HAS DATA AS WELL (SUCH AS OECD MEMBERS)
 
