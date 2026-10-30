@@ -53,12 +53,15 @@ def easy_melter(data, id_until, var_name, value_name="value"):
         value_name=value_name)
     return data
 
-def import_file(file, file_format="csv", header_row=0):
+def import_file(file, file_format="csv", sheet_name=None, header_row=0):
     match file_format:
         case "csv":
             return pd.read_csv(file, header=header_row)
         case "excel" | "xlsx" | "xls":
-            return pd.read_excel(file, header=header_row)
+            if sheet_name:
+                return pd.read_excel(file, sheet_name=sheet_name, header=header_row)
+            else:
+                return pd.read_excel(file, header=header_row)
         case "stata" | "dta":
             return pd.read_stata(file)
         case _:

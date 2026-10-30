@@ -104,8 +104,13 @@ def import_ross_2015():
 def import_wb_p_data():
     df = hp.import_file(
         "data/worldbank/P_Data_Extract_From_World_Development_Indicators/data.csv",
-        file_format="csv"
+        file_format="csv",
     )
+    df = hp.easy_melter(df, 4, "year")
+    df["year"] = df["year"].str[:4]
+    df = hp.year_convert(df, "year")
+    df.to_csv("AHHHH.csv")
+
 
     return df
 
